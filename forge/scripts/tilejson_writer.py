@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+import shutil
 import os
 import sys
 import time
@@ -24,7 +24,7 @@ from forge.lib.helpers import timestamp, degreesToMeters
 from forge.lib.tiles import Tiles
 from forge.lib.logs import getLogger
 from forge.lib.helpers import gzipFileObject, resourceExists
-from forge.lib.boto_conn import getBucket, writeToS3
+#from forge.lib.boto_conn import getBucket, writeToS3
 from forge.lib.poolmanager import PoolManager
 
 
@@ -230,7 +230,10 @@ def createModelBasedTileJSON(params):
 
 
 def createTerrainBasedTileJSON(params):
-    baseUrls = getBaseUrls(params)
+    print 'd: '
+    print params
+    #baseUrls = getBaseUrls(params)
+    baseUrls = '/root/data/output' 
     with open('configs/terrain/layer.json') as f:
         terrainConfig = json.loads(f.read())
 
@@ -344,32 +347,35 @@ def main(template):
     tilecount = None
     layerConfig = ConfigParser.RawConfigParser()
     layerConfig.read(template)
-    try:
-        terrainBased = layerConfig.getboolean('Grid', 'terrainBased')
-    except ConfigParser.NoSectionError as e:
-        logger.error(e, exc_info=True)
-        raise ValueError('The layer configuration file contains errors.')
+    #try:
+    #    terrainBased = layerConfig.getboolean('Grid', 'terrainBased')
+    #except ConfigParser.NoSectionError as e:
+    #    logger.error(e, exc_info=True)
+    #    raise ValueError('The layer configuration file contains errors.')
 
-    if terrainBased:
-        # params = parseTerrainBasedLayer(layerConfig)
-        # tileJSON = createTerrainBasedTileJSON(params)
+    #if terrainBased:
+    if True:
         params = parseTerrainBasedLayer(layerConfig)
-        tileJSON = createS3BasedTileJSON(params)
+        tileJSON = createTerrainBasedTileJSON(params)
+        #params = parseTerrainBasedLayer(layerConfig)
+        #tileJSON = createS3BasedTileJSON(params)
     else:
         dbConfig = ConfigParser.RawConfigParser()
-        dbConfig.read('configs/raster/database.cfg')
+        dbConfig.read('configs/terrain/database.cfg')
         params = parseModelBasedLayer(dbConfig, layerConfig)
         (tileJSON, tilecount) = createModelBasedTileJSON(params)
 
     # Same bucket for now
-    bucket = getBucket()
+    #bucket = getBucket()
     fileObj = cStringIO.StringIO()
     fileObj.write(tileJSON)
-    fileObj = gzipFileObject(fileObj)
+    #fileObj = gzipFileObject(fileObj)
     logger.info('Uploading %slayer.json to S3' % params.bucketBasePath)
-
-    writeToS3(bucket, 'layer.json', fileObj, 'tilejson', params.bucketBasePath,
-        contentType='application/json')
+    with open('/root/data/output/layer.json', 'wb') as f:
+        #shutil.copyfileobj(fileObj, f)
+        f.write(tileJSON)
+    #writeToS3(bucket, 'layer.json', fileObj, 'tilejson', params.bucketBasePath,
+    #    contentType='application/json')
     logger.info('layer.json has been uploaded successfully')
 
     if tilecount:

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+import shutil
 import os
 import time
 import datetime
@@ -17,7 +17,7 @@ from forge.terrain.metadata import TerrainMetadata
 from forge.terrain.topology import TerrainTopology
 from forge.models.tables import modelsPyramid
 from forge.lib.tiles import TerrainTiles, QueueTerrainTiles
-from forge.lib.boto_conn import getBucket, writeToS3, getSQS, writeSQSMessage
+#from forge.lib.boto_conn import getBucket, writeToS3, getSQS, writeSQSMessage
 from forge.lib.helpers import gzipFileObject, timestamp, transformCoordinate, createBBox
 from forge.lib.global_geodetic import GlobalGeodetic
 from forge.lib.geometry_processors import processRingCoordinates
@@ -104,7 +104,7 @@ def createTile(tile):
 
         db = DB(dbConfigFile)
         with db.userSession() as session:
-            bucket = getBucket()
+            #bucket = getBucket()
 
             # Get the model according to the zoom level
             model = modelsPyramid.getModelByZoom(tileXYZ[2])
@@ -189,14 +189,26 @@ def createTile(tile):
                 # Prepare terrain tile
                 terrainFormat = TerrainTile(watermask=watermask)
                 terrainFormat.fromTerrainTopology(terrainTopo, bounds=bounds)
-
                 # Bytes manipulation and compression
                 fileObject = terrainFormat.toStringIO()
                 compressedFile = gzipFileObject(fileObject)
-                writeToS3(
-                    bucket, bucketKey, compressedFile, model.__tablename__,
-                    bucketBasePath, contentType=terrainFormat.getContentType()
-                )
+                print bucketKey
+                filename = '/root/data/output/' + bucketKey
+                if not os.path.exists(os.path.dirname(filename)):
+                    try:
+                        os.makedirs(os.path.dirname(filename))
+                    except OSError as exc:  # Guard against race condition
+                        if exc.errno != errno.EEXIST:
+                            raise
+
+                with open(filename, 'wb') as f:
+                    #f.write(fileObject)
+                    shutil.copyfileobj(compressedFile, f)
+                #writeToS3(
+                #    bucket, bucketKey, compressedFile, model.__tablename__,
+                #    bucketBasePath, contentType=terrainFormat.getContentType()
+                #)
+				
                 tend = time.time()
                 tilecount.value += 1
                 val = tilecount.value

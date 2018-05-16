@@ -66,7 +66,8 @@ class ModelsPyramid:
         for i in range(0, len(self.shpsBaseDir)):
             shpBaseDir = '%s%s' % (self.baseDir, self.shpsBaseDir[i])
             if os.path.exists(shpBaseDir):
-                shapefiles = ['%s%s' % (shpBaseDir, f)
+                for f in os.listdir(shpBaseDir):
+                    shapefiles = ['%s%s' % (shpBaseDir, f)
                     for f in os.listdir(shpBaseDir) if isShapefile(f)]
             else:
                 shapefiles = []

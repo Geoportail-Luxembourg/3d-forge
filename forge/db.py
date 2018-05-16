@@ -121,7 +121,8 @@ def populateFeatures(args):
             # add shapefile path to dict
             # self.shpFilePath
             bulk.add(dict(
-                the_geom = WKTElement(polygon.ExportToWkt(), 4326),
+                #the_geom = WKTElement(polygon.ExportToWkt(), 4326),
+                the_geom = 'SRID=4326;' + polygon.ExportToWkt(),
                 shapefilepath=shpFile
             ))
             count += 1
@@ -331,7 +332,7 @@ class DB:
         for fileName in os.listdir('forge/sql/'):
             logger.info('Action: setupFunctions() %s function' % fileName)
             if fileName != 'legacy.sql':
-                command = 'psql --quiet -U %(user)s -d %(dbname)s -a -f ' \
+                command = 'psql --quiet -h 10.113.80.171 -p 5434 -U %(user)s -d %(dbname)s -a -f ' \
                     '%(baseDir)s%(fileName)s' % dict(
                         user=self.databaseConf.user,
                         dbname=self.databaseConf.name,
@@ -357,7 +358,7 @@ class DB:
                         "SELECT postgis_version();"
                     ).fetchone()[0]
                 if pgVersion.startswith("2."):
-                    command = 'psql --quiet -h %(host)s -U %(user)s ' \
+                    command = 'psql  -p 5434 --quiet -h %(host)s -U %(user)s ' \
                         '-d %(dbname)s -f %(baseDir)s%(fileName)s' % dict(
                             host=self.serverConf.host,
                             user=self.adminConf.user,
@@ -395,8 +396,8 @@ class DB:
 
         if not os.path.exists(outDirectory):
             raise OSError('%s does not exist' % outDirectory)
-        if not os.path.exists(geosuiteCmd):
-            raise OSError('%s does not exist' % geosuiteCmd)
+        #if not os.path.exists(geosuiteCmd):
+        #    raise OSError('%s does not exist' % geosuiteCmd)
 
         tstart = time.time()
         models = modelsPyramid.models
@@ -404,7 +405,6 @@ class DB:
         for i in range(0, len(models)):
             model = models[i]
             for shp in model.__shapefiles__:
-
                 featuresArgs.append(PopulateFeaturesArguments(
                     engineURL    = self.userEngine.url,
                     modelIndex   = i,
@@ -423,6 +423,7 @@ class DB:
 
         cpuCount = multiprocessing.cpu_count()
         numFiles = len(featuresArgs)
+
         numProcs = cpuCount if numFiles >= cpuCount else numFiles
         pm = PoolManager(logger=logger, numProcs=numProcs, factor=1)
 
